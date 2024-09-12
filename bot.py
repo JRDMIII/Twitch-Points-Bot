@@ -1,10 +1,11 @@
 import pyautogui
-import config
+from dotenv import load_dotenv
 import socket
 from collections import namedtuple
 import pyautogui as keyboard
 from time import sleep as s
 import csv
+import os
 
 pyautogui.FAILSAFE = False
 
@@ -17,9 +18,11 @@ Message = namedtuple(
 
 class Bot:
     def __init__(self):
+        load_dotenv()
+
         self.irc_server = 'irc.twitch.tv'
         self.irc_port = 6667
-        self.oauth_token = config.OAUTH_TOKEN
+        self.oauth_token = os.getenv('OAUTH_TOKEN')
         self.username = 'CresentBot'
         self.channels = ['cresents']
         with open("pointSave.csv", "r") as readfile:
