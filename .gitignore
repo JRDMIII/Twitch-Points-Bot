@@ -7,6 +7,7 @@
 
 # Logs and databases #
 *.sql
+*.db
 *.sqlite
 
 # OS generated files #
