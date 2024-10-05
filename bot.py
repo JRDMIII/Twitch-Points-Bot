@@ -4,8 +4,8 @@ import socket
 from collections import namedtuple
 import pyautogui as keyboard
 from time import sleep as s
-import csv
 import os
+import database as db
 
 pyautogui.FAILSAFE = False
 
@@ -20,29 +20,25 @@ class Bot:
     def __init__(self):
         load_dotenv()
 
+        self.db = db.Database()
+    
         self.irc_server = 'irc.twitch.tv'
         self.irc_port = 6667
         self.oauth_token = os.getenv('OAUTH_TOKEN')
         self.username = 'CresentBot'
         self.channels = ['cresents']
-        with open("pointSave.csv", "r") as readfile:
-            reader = csv.reader(readfile)
-            for row in reader:
-                try:
-                    chatPoints = row[0]
-                except IndexError:
-                    pass
-
-            self.points = int(chatPoints)
-            print(self.points)
 
         self.seeLogs = False
         self.valCommandsOn = True
-        self.cooldown = 0
 
         self.jumpPoints, self.dropAllPoints, self.wKeyPoints, self.twerkPoints = 20, 20, 20, 20
 
-    def send_privmsg(self, channel, text):
+    def send_privmsg(self, channel: str, text: str) -> None:
+        """Send a message into the Twitch chat
+        Args:   
+            channel (str): The id of the channel the message will go into
+            text (str): The content of the message
+        """
         self.send_command(f'PRIVMSG #{channel} :{text}')
 
     def send_command(self, command):
@@ -52,6 +48,8 @@ class Bot:
         self.irc.send((command + '\r\n').encode())
 
     def connect(self):
+        """Connecting the bot to the twitch channel
+        """
         self.irc = socket.socket()
         self.irc.connect((self.irc_server, self.irc_port))
         self.send_command(f'PASS {self.oauth_token}')
@@ -60,8 +58,13 @@ class Bot:
             self.send_command(f'JOIN #{channel}')
         self.loop_for_messages()
 
-    # This will use the prefix we found the find the username of the person who sent a message
-    def get_user_from_prefix(self, prefix):
+    def get_user_from_prefix(self, prefix) -> str:
+        """Gets the username of the person who sends the message
+        Args:
+            prefix (str): Prefix of the user
+        Returns:
+            str: Returns either the user or None if the user couldn't be found
+        """
         domain = prefix.split('!')[0]
         if domain.endswith('.tmi.twitch.tv'):
             #This then removes that part of the message from the
@@ -136,6 +139,10 @@ class Bot:
         return message
 
     def handle_commands(self, msg, text_command):
+        # Dealing with user in database
+        if not self.db.user_exists(msg.user):
+            self.db.insert_user(msg.user)
+
         #Main commands that will always be running
         if text_command == "!help":
             self.send_privmsg(msg.channel, "!points - See total chat points \n")
@@ -147,32 +154,42 @@ class Bot:
             self.send_privmsg(msg.channel, "!jump (" + str(self.jumpPoints) + " points), !wkey (" + str(self.wKeyPoints) + " points), !dropall (" + str(self.dropAllPoints) + " points), !twerk (" + str(self.jumpPoints) + " points)")
 
         if text_command == "!points":
-            self.send_privmsg(msg.channel, "The chat has " + str(self.points) + " points! Chat to add more (messages must be longer than 5 characters to gain points)")
+            self.send_privmsg(msg.channel, f"@{msg.user}, you have {self.db.get_points(msg.user)} points! Chat to gain more points!")
 
 
         if '!jump' in text_command:
-            if self.points > self.jumpPoints:
-                self.points = self.points - self.jumpPoints
+            if self.db.deduct_points(msg.user, self.jumpPoints):
+
                 pyautogui.keyDown('space')
                 s(0.5)
                 pyautogui.keyUp('space')
-                self.send_privmsg(msg.channel, "The chat now has " + str(self.points) + " points after " + msg.user + " used jump!")
+
+                self.send_privmsg(msg.channel, f"@{msg.user}, you now have {self.db.get_points(msg.user)} points after using 'jump'!")
+                self.db.add_transaction({ 
+                    "username": msg.user,
+                    "action": "Jump",
+                    "points": self.jumpPoints,
+                })
             else:
-                self.send_privmsg(msg.channel, "The chat doesnt have enough points to do that!")
+                self.send_privmsg(msg.channel, f"@{msg.user}, you don't have enough points to do that!")
         if '!wkey' in text_command:
-            if self.points > self.wKeyPoints:
-                self.points = self.points - self.wKeyPoints
-                # W key command here
+            if self.db.deduct_points(msg.user, self.wKeyPoints):
+
                 pyautogui.keyDown(']')
                 s(5)
                 pyautogui.keyUp(']')
-                self.send_privmsg(msg.channel, "The chat now has " + str(self.points) + " points after " + msg.user + "Used W Key!")
+
+                self.send_privmsg(msg.channel, f"@{msg.user}, you now have {self.db.get_points(msg.user)} points after using 'w key'!")
+                self.db.add_transaction({ 
+                    "username": msg.user,
+                    "action": "wkey",
+                    "points": self.wKeyPoints,
+                })
             else:
-                self.send_privmsg(msg.channel, "The chat doesnt have enough points to do that!")
+                self.send_privmsg(msg.channel, f"@{msg.user}, you don't have enough points to do that!")
         if '!dropall' in msg.text:
-            if self.points > self.dropAllPoints:
-                self.points = self.points - self.dropAllPoints
-                # W key command here
+            if self.db.deduct_points(msg.user, self.wKeyPoints):
+
                 keyboard.keyDown('1')
                 keyboard.keyUp('1')
                 keyboard.keyDown('g')
@@ -181,45 +198,18 @@ class Bot:
                 keyboard.keyUp('2')
                 keyboard.keyDown('g')
                 keyboard.keyUp('g')
-                self.send_privmsg(msg.channel, "The chat now has " + str(self.points) + " points after " + msg.user + " used drop gun!")
+
+                self.send_privmsg(msg.channel, f"@{msg.user}, you now have {self.db.get_points(msg.user)} points after using 'drop all'!")
+                self.db.add_transaction({ 
+                    "username": msg.user,
+                    "action": "Drop All",
+                    "points": self.dropAllPoints,
+                })
             else:
-                self.send_privmsg(msg.channel, "The chat doesnt have enough points to do that! You have " + str(self.points) + " points")
-        if '!twerk' in msg.text:
-            if self.points > 4:
-                for i in range(0, 5):
-                    pyautogui.keyDown('ctrl')
-                    s(1)
-                    pyautogui.keyUp('ctrl')
-        if '!usec' in msg.text:
-            if self.points > 0:
-                pyautogui.keyDown('j')
-                s(2)
-                pyautogui.leftClick()
-                pyautogui.keyUp('j')
-        if '!useq' in msg.text:
-            if self.points > 0:
-                pyautogui.keyDown('u')
-                s(2)
-                pyautogui.leftClick()
-                pyautogui.keyUp('u')
-        if '!useult' in msg.text:
-            if self.points > 0:
-                s(2)
-                pyautogui.keyDown('/')
-                pyautogui.leftClick()
-                pyautogui.keyUp('/')
-        if '!spray' in msg.text:
-            if self.points > 0:
-                s(1)
-                pyautogui.keyDown('=')
-                s(7)
-                pyautogui.keyUp('=')
+                self.send_privmsg(msg.channel, f"@{msg.user}, you don't have enough points to do that!")
 
-
-        with open("pointSave.csv", "w") as writeFile:
-            writer = csv.writer(writeFile)
-            writer.writerow([self.points])
-
+        # Adding 10 points to the user after their command
+        self.db.add_points(msg.user, 10)
 
     def handle_message(self, received_msg):
         if len(received_msg) == 0:
@@ -234,8 +224,6 @@ class Bot:
             self.send_command('PONG :tmi.twitch.tv')
 
         if msg.irc_command == 'PRIVMSG':
-            if len(msg.text) > 5:
-                self.points = self.points + 25
             self.handle_commands(
                 msg, #Full message
                 msg.text_command, #This wil be the command said

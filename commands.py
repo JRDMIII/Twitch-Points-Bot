@@ -41,3 +41,35 @@ commands = {
     'wkey': createCommand(None, 100, wKeyCommand),
     'dropall': createCommand(None, 100, dropAllCommand),
 }
+
+
+# if '!twerk' in msg.text:
+#     if self.points > 4:
+#         for i in range(0, 5):
+#             pyautogui.keyDown('ctrl')
+#             s(1)
+#             pyautogui.keyUp('ctrl')
+# if '!usec' in msg.text:
+#     if self.points > 0:
+#         pyautogui.keyDown('j')
+#         s(2)
+#         pyautogui.leftClick()
+#         pyautogui.keyUp('j')
+# if '!useq' in msg.text:
+#     if self.points > 0:
+#         pyautogui.keyDown('u')
+#         s(2)
+#         pyautogui.leftClick()
+#         pyautogui.keyUp('u')
+# if '!useult' in msg.text:
+#     if self.points > 0:
+#         s(2)
+#         pyautogui.keyDown('/')
+#         pyautogui.leftClick()
+#         pyautogui.keyUp('/')
+# if '!spray' in msg.text:
+#     if self.points > 0:
+#         s(1)
+#         pyautogui.keyDown('=')
+#         s(7)
+#         pyautogui.keyUp('=')

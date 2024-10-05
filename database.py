@@ -1,31 +1,57 @@
 import sqlite3 as sql
+import uuid
 
 class Database:
     def __init__(self) -> None:
+        """Constructor for database class
+        """
         try:
             # Connecting the program to the database for all the points
             self.conn = sql.connect('database.db')
-        
+
+            # Used to perform SQL operations
             self.c = self.conn.cursor()
 
+            # Creating the tables
             self.c.execute("""
                 CREATE TABLE chatters 
                     (
-                        id text primary key,
-                        username text,
-                        points int
+                        id TEXT primary key,
+                        username TEXT NOT NULL,
+                        points INTEGER DEFAULT 0
                     );
             """)
+
+            self.c.execute("""
+                CREATE TABLE transactions
+                    (
+                        id TEXT PRIMARY KEY,
+                        userID TEXT,
+                        date DATE,
+                        action TEXT,
+                        points TEXT,
+                        FOREIGN KEY(userID) REFERENCES chatters(id)
+                    );
+            """)
+
+            self.conn.commit()
+            
         except sql.OperationalError:
             # Database has already been created
             print("Database has already been created")
         
-    def insert_user(self, username: str) -> None:
+    def insert_user(self, username: str) -> bool:
         """Insert a new chatter into the chatters table
         Args:   username (str): The username of the chatter
         """
+        # Checking if the user already exists in the table as the username should be unique
+        self.c.execute(f"SELECT * FROM chatters WHERE username='{username}'")
 
-        uid = hash(username) # Generating hash for the username
+        if self.c.fetchone() != None: 
+            print("User already exists")
+            return False
+
+        uid = str(abs(hash(username))) # Generating hash for the username
 
         # Execution statement to insert new chatter
         self.c.execute(f"""
@@ -35,6 +61,8 @@ class Database:
 
         # Committing to the database
         self.conn.commit()
+
+        return True
     
     def get_points(self, username: str) -> int:
         """Gets the points of a certain chatter
@@ -92,8 +120,33 @@ class Database:
         # Committing to the database
         self.conn.commit()
     
+    def get_user_id(self, username: str) -> str:
+        self.c.execute(f"""
+            SELECT id
+            FROM chatters
+            WHERE username='{username}'
+        """)
 
-if __name__ == "__main__":
-    db = Database()
-    db.get_points("James")
-    
+        return self.c.fetchone()[0]
+
+    def user_exists(self, username: str) -> bool:
+        # Checking if the user already exists in the table as the username should be unique
+        self.c.execute(f"SELECT * FROM chatters WHERE username='{username}'")
+
+        return self.c.fetchone() != None
+
+
+    def add_transaction(self, transaction: dict) -> None:
+        """Adds a transaction to the database
+        Args:   transaction (dict[str, str]): Dictionary with transaction information
+        """
+
+        id = str(uuid.uuid4())
+        user_id = self.get_user_id(transaction["username"])
+
+        self.c.execute(f"""
+            INSERT INTO transactions(id, userID, date, action, points)
+            VALUES ('{id}', '{user_id}', DATETIME('now'), '{transaction["action"]}', {transaction["points"]})
+        """)
+
+        self.conn.commit()
