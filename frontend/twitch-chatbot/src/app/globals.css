@@ -20,8 +20,8 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+@layer components {
+  .link-button {
+    @apply p-3 px-5 bg-blue-600 text-sm text-center rounded-md hover:bg-blue-700 transition-colors duration-500;
   }
 }
