@@ -22,6 +22,8 @@ class Database:
                     );
             """)
 
+            self.conn.commit()
+
             self.c.execute("""
                 CREATE TABLE transactions
                     (
@@ -31,6 +33,19 @@ class Database:
                         action TEXT,
                         points TEXT,
                         FOREIGN KEY(userID) REFERENCES chatters(id)
+                    );
+            """)
+
+            self.conn.commit()
+
+            self.c.execute("""
+                CREATE TABLE commands
+                    (
+                        id TEXT PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        points INTEGER DEFAULT 100,
+                        action TEXT NOT NULL,
+                        params TEXT NOT NULL
                     );
             """)
 
@@ -135,7 +150,6 @@ class Database:
 
         return self.c.fetchone() != None
 
-
     def add_transaction(self, transaction: dict) -> None:
         """Adds a transaction to the database
         Args:   transaction (dict[str, str]): Dictionary with transaction information
@@ -150,3 +164,10 @@ class Database:
         """)
 
         self.conn.commit()
+
+    # Command Functions
+    def get_commands(self):
+        self.c.execute("SELECT * FROM commands")
+        
+        return self.c.fetchall()
+

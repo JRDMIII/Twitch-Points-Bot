@@ -6,6 +6,8 @@ import pyautogui as keyboard
 from time import sleep as s
 import os
 import database as db
+import commands
+import json
 
 pyautogui.FAILSAFE = False
 
@@ -21,7 +23,44 @@ class Bot:
         load_dotenv()
 
         self.db = db.Database()
-    
+
+        self.commands = {}
+
+        for command in self.db.get_commands():
+            (command_id, name, points, action, params) = command
+            params = json.loads(params)
+
+            if action == "pressKey":
+                self.commands[name] = {
+                    "id": command_id,
+                    "name": name,
+                    "command": lambda: commands.pressKeyCommand(params["key"]),
+                    "points": points
+                }
+            elif action == "holdKey":
+                self.commands[name] = {
+                    "id": command_id,
+                    "name": name,
+                    "command": lambda: commands.holdKeyCommand(params["key"], params["time"]),
+                    "points": points
+                }
+            elif action == "pressSeq":
+                self.commands[name] = {
+                    "id": command_id,
+                    "name": name,
+                    "command": lambda: commands.pressSeqCommand(params["sequence"], params["time"]),
+                    "points": points
+                }
+            elif action == "randomPress":
+                self.commands[name] = {
+                    "id": command_id,
+                    "name": name,
+                    "command": lambda: commands.randomPresses(params["key"], params["freq"], params["min_interval"], params["max_interval"]),
+                    "points": points
+                }
+             
+        print(self.commands)
+
         self.irc_server = 'irc.twitch.tv'
         self.irc_port = 6667
         self.oauth_token = os.getenv('OAUTH_TOKEN')
@@ -139,6 +178,8 @@ class Bot:
         return message
 
     def handle_commands(self, msg, text_command):
+        if text_command[0] != '!': return
+
         # Dealing with user in database
         if not self.db.user_exists(msg.user):
             self.db.insert_user(msg.user)
@@ -157,59 +198,22 @@ class Bot:
             self.send_privmsg(msg.channel, f"@{msg.user}, you have {self.db.get_points(msg.user)} points! Chat to gain more points!")
 
 
-        if '!jump' in text_command:
-            if self.db.deduct_points(msg.user, self.jumpPoints):
+        if text_command[1:] in self.commands.keys():
+            command = self.commands[text_command[1:]]
+            if self.db.deduct_points(msg.user, command["points"]):
 
-                pyautogui.keyDown('space')
-                s(0.5)
-                pyautogui.keyUp('space')
+                command["command"]()
 
-                self.send_privmsg(msg.channel, f"@{msg.user}, you now have {self.db.get_points(msg.user)} points after using 'jump'!")
+                name = command["name"]
+
+                self.send_privmsg(msg.channel, f"@{msg.user}, you now have {self.db.get_points(msg.user)} points after using '{name}'!")
                 self.db.add_transaction({ 
                     "username": msg.user,
-                    "action": "Jump",
-                    "points": self.jumpPoints,
+                    "action": command["id"],
+                    "points": command["points"],
                 })
             else:
                 self.send_privmsg(msg.channel, f"@{msg.user}, you don't have enough points to do that!")
-        if '!wkey' in text_command:
-            if self.db.deduct_points(msg.user, self.wKeyPoints):
-
-                pyautogui.keyDown(']')
-                s(5)
-                pyautogui.keyUp(']')
-
-                self.send_privmsg(msg.channel, f"@{msg.user}, you now have {self.db.get_points(msg.user)} points after using 'w key'!")
-                self.db.add_transaction({ 
-                    "username": msg.user,
-                    "action": "wkey",
-                    "points": self.wKeyPoints,
-                })
-            else:
-                self.send_privmsg(msg.channel, f"@{msg.user}, you don't have enough points to do that!")
-        if '!dropall' in msg.text:
-            if self.db.deduct_points(msg.user, self.wKeyPoints):
-
-                keyboard.keyDown('1')
-                keyboard.keyUp('1')
-                keyboard.keyDown('g')
-                keyboard.keyUp('g')
-                keyboard.keyDown('2')
-                keyboard.keyUp('2')
-                keyboard.keyDown('g')
-                keyboard.keyUp('g')
-
-                self.send_privmsg(msg.channel, f"@{msg.user}, you now have {self.db.get_points(msg.user)} points after using 'drop all'!")
-                self.db.add_transaction({ 
-                    "username": msg.user,
-                    "action": "Drop All",
-                    "points": self.dropAllPoints,
-                })
-            else:
-                self.send_privmsg(msg.channel, f"@{msg.user}, you don't have enough points to do that!")
-
-        # Adding 10 points to the user after their command
-        self.db.add_points(msg.user, 10)
 
     def handle_message(self, received_msg):
         if len(received_msg) == 0:
@@ -224,6 +228,8 @@ class Bot:
             self.send_command('PONG :tmi.twitch.tv')
 
         if msg.irc_command == 'PRIVMSG':
+            # Adding 10 points to the user after a message
+            self.db.add_points(msg.user, 10)
             self.handle_commands(
                 msg, #Full message
                 msg.text_command, #This wil be the command said
@@ -239,7 +245,6 @@ class Bot:
 def main():
     bot = Bot()
     bot.connect()
-
 
 if __name__ == "__main__":
     main()

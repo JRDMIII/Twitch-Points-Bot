@@ -1,5 +1,6 @@
 import pyautogui as kbm
 from time import sleep
+import random
 
 def createCommand(message, cost, function):
     return (
@@ -11,14 +12,48 @@ def createCommand(message, cost, function):
     )
 
 # These are all the function which will be available
-def pressKeyCommand(key:str, time:int=0.5):
+def holdKeyCommand(key:str, time:int=0.5):
+    """Holds down a key for a certain amount of time
+
+    Args:
+        key (str): Key to be pressed
+        time (int, optional): Time the key will be pressed for. Defaults to 0.5.
+    """
     kbm.keyDown(key)
     sleep(time)
     kbm.keyUp(key)
 
-def dropSequence(sequence:str):
-    # List of characters - print each characters
-    return
+def pressKeyCommand(key:str):
+    """Presses a key
+
+    Args:
+        key (str): Key to be pressed
+    """
+    kbm.keyDown(key)
+    kbm.keyUp(key)
+
+def pressSeqCommand(seq:str, time:int=0.25):
+    """Presses a sequence of keys that are passed in
+
+    Args:
+        seq (str): The sequence of keys to be pressed
+        time (int, optional): The time to wait between key presses. Defaults to 0.25.
+    """
+    for key in seq:
+        pressKeyCommand(key)
+        sleep(time)
+
+def randomPresses(key:str, freq:int=3, min_interval:float=1, max_interval:float=1):
+    """Presses a specified key a certain number of times with a random interval
+    Args:
+        key (str): The key to be pressed
+        freq (int, optional): Number of times the key will be pressed. Defaults to 3.
+        min_interval (float, optional): Lowest time interval between key presses. Defaults to 1.
+        max_interval (float, optional): Highest time interval between key presses. Defaults to 1.
+    """
+    for _ in range(freq):
+        pressKeyCommand(key)
+        sleep(random.randint(min_interval, max_interval))
 
 def jumpCommand():
     pressKeyCommand('space')
@@ -35,13 +70,6 @@ def dropAllCommand():
     kbm.keyUp('2')
     kbm.keyDown('g')
     kbm.keyUp('g')
-
-commands = {
-    'jump': createCommand(None, 100, jumpCommand),
-    'wkey': createCommand(None, 100, wKeyCommand),
-    'dropall': createCommand(None, 100, dropAllCommand),
-}
-
 
 # if '!twerk' in msg.text:
 #     if self.points > 4:
