@@ -55,7 +55,7 @@ class Bot:
                 self.commands[name] = {
                     "id": command_id,
                     "name": name,
-                    "command": lambda: commands.randomPresses(params["key"], int(params["freq"]), int(params["min_interval"]), float(params["max_interval"])),
+                    "command": lambda: commands.randomPresses(params["key"], int(params["freq"]), float(params["min_interval"]), float(params["max_interval"])),
                     "points": points
                 }
              
@@ -69,8 +69,6 @@ class Bot:
 
         self.seeLogs = False
         self.valCommandsOn = True
-
-        self.jumpPoints, self.dropAllPoints, self.wKeyPoints, self.twerkPoints = 20, 20, 20, 20
 
     def send_privmsg(self, channel: str, text: str) -> None:
         """Send a message into the Twitch chat
@@ -190,9 +188,6 @@ class Bot:
 
         if text_command == "!hello":
             self.send_privmsg(msg.channel, "Hello " + msg.user + "! Hope you have a wonderful day!")
-
-        if text_command == "!valcommands":
-            self.send_privmsg(msg.channel, "!jump (" + str(self.jumpPoints) + " points), !wkey (" + str(self.wKeyPoints) + " points), !dropall (" + str(self.dropAllPoints) + " points), !twerk (" + str(self.jumpPoints) + " points)")
 
         if text_command == "!points":
             self.send_privmsg(msg.channel, f"@{msg.user}, you have {self.db.get_points(msg.user)} points! Chat to gain more points!")
