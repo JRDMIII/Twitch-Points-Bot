@@ -41,21 +41,21 @@ class Bot:
                 self.commands[name] = {
                     "id": command_id,
                     "name": name,
-                    "command": lambda: commands.holdKeyCommand(params["key"], params["time"]),
+                    "command": lambda: commands.holdKeyCommand(params["key"], float(params["time"])),
                     "points": points
                 }
             elif action == "pressSeq":
                 self.commands[name] = {
                     "id": command_id,
                     "name": name,
-                    "command": lambda: commands.pressSeqCommand(params["sequence"], params["time"]),
+                    "command": lambda: commands.pressSeqCommand(params["sequence"], float(params["time"])),
                     "points": points
                 }
             elif action == "randomPress":
                 self.commands[name] = {
                     "id": command_id,
                     "name": name,
-                    "command": lambda: commands.randomPresses(params["key"], params["freq"], params["min_interval"], params["max_interval"]),
+                    "command": lambda: commands.randomPresses(params["key"], int(params["freq"]), int(params["min_interval"]), float(params["max_interval"])),
                     "points": points
                 }
              

@@ -12,16 +12,15 @@ def createCommand(message, cost, function):
     )
 
 # These are all the function which will be available
-def holdKeyCommand(key:str, time:int=0.5):
+def holdKeyCommand(key:str, time:float=0.5):
     """Holds down a key for a certain amount of time
 
     Args:
         key (str): Key to be pressed
         time (int, optional): Time the key will be pressed for. Defaults to 0.5.
     """
-    kbm.keyDown(key)
-    sleep(time)
-    kbm.keyUp(key)
+    with kbm.hold(key):
+        kbm.sleep(time)
 
 def pressKeyCommand(key:str):
     """Presses a key
@@ -32,7 +31,7 @@ def pressKeyCommand(key:str):
     kbm.keyDown(key)
     kbm.keyUp(key)
 
-def pressSeqCommand(seq:str, time:int=0.25):
+def pressSeqCommand(seq:str, time:float=0.25):
     """Presses a sequence of keys that are passed in
 
     Args:
@@ -54,22 +53,6 @@ def randomPresses(key:str, freq:int=3, min_interval:float=1, max_interval:float=
     for _ in range(freq):
         pressKeyCommand(key)
         sleep(random.randint(min_interval, max_interval))
-
-def jumpCommand():
-    pressKeyCommand('space')
-
-def wKeyCommand():
-    pressKeyCommand('key', 10)
-
-def dropAllCommand():
-    kbm.keyDown('1')
-    kbm.keyUp('1')
-    kbm.keyDown('g')
-    kbm.keyUp('g')
-    kbm.keyDown('2')
-    kbm.keyUp('2')
-    kbm.keyDown('g')
-    kbm.keyUp('g')
 
 # if '!twerk' in msg.text:
 #     if self.points > 4:
